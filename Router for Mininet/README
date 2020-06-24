@@ -1,0 +1,89 @@
+
+			Router
+
+~ Tabela de rutare:
+
+	Incepem prin a citi datele din rtable.txt. Le sortam apoi cu
+QuickSort care are complexitatea pe average case: O(n*log(n)). Sortarea se
+va face in functie de prefixul si masca intrarilor astfel:
+
+	* crescator in functie de aplicarea operatiei "si": prefix & masca
+	* in caz de egalitate, crescator in functie de masca
+
+O parte dintr-o tabela de rutare ar arata astfel:
+
+192.168.0.0 192.168.1.2 255.255.255.0 1 43200
+192.168.0.0 192.168.1.2 255.255.255.128 1 43200
+192.168.0.0 192.168.1.2 255.255.255.192 1 43200
+192.168.0.0 192.168.1.2 255.255.255.224 1 43200
+192.168.0.0 192.168.1.2 255.255.255.240 1 43200
+192.168.0.0 192.168.0.2 255.255.255.248 0 43200
+192.168.2.0 192.168.3.2 255.255.255.128 3 174272
+192.168.2.0 192.168.3.2 255.255.255.192 3 174272
+192.168.2.0 192.168.3.2 255.255.255.224 3 174272
+192.168.2.0 192.168.3.2 255.255.255.240 3 174272
+192.168.2.0 192.168.2.2 255.255.255.248 2 174272
+
+Cautam pentru best_route intrarea in tabela cu binary search. 
+Cum binary search va returna prima intrare pe care o gaseste care se va
+potrivi (prefix & mask = dest_ip & mask), nu suntem siguri daca a gasit-o,
+de fapt, pe cea mai specifica, trebuie sa mai parcurgem si urmatoarele
+intrari din tabela (in jos, fiindca intrarea potrivita cu masca cea mai mare
+va fi ultima), pana dam de o intrare care nu se potriveste.
+
+~ Implementarea propriu-zisa:
+
+intr-un while(1), in care primim pachete:
+
+* verificam tipul pachetului primit:
+
+	~ este un pachet IP (are ether_type 0x800):
+
+- daca are checksum gresit: drop
+- daca timpul de viata nu ii permite forwarding (ttl <= 1): drop
+- verificam daca pachetul este pentru noi pentru una din interfetele routerului
+- cautam best route, aplicand procedeul explicat mai sus
+	* daca nu exista best_route, inseamna ca destinatia este 
+unreachable de catre ruter, pe orice cale ar incerca: trimite un pachet
+ICMP inapoi sursei, cu campurile necesare
+	* daca exista best_route: 
+	- updatam ttl si checksum
+	- cautam in tabela ARP adresa MAC la care trebuie sa trimitem mai
+departe pachetul. 
+		* Daca pachetul este pentru noi, nu conteaza ca nu am gasit
+intrarea in tabela ARP, MAC-ul va fi al uneia din interfetele routerului.
+		* Daca nu o gasim si nu noi suntem destinatia pachetului,
+punem pachetul in coada si trimitem un ARP request pe interfata (de iesire)
+data de best_route. Trecem mai departe, primim noul pachet. Daca va fi un ARP
+reply cu MAC-ul dorit, trecem pe ramura "este un pachet ARP"
+		* Daca o gasim si noi nu suntem destinatia => forward
+(modificam MAC-urile sursa(cu MAC-ul interfetei pe care iese pachetul) si
+destinatie(cu MAC-ul next_hop))
+		* Altfel: noi suntem destinatia:
+		- verificam daca este un pachet ICMP, daca nu: drop
+		- initializam header-ul ICMP, verificam checksum
+		- wrong checksum: drop
+		- este un pachet ICMP ECHO request? Nu => drop, Da =>
+construim un ICMP ECHO reply si il trimitem pe aceeasi interfata
+
+
+	~ este un pachet ARP (are ether_type 0x806):
+
+- initializam header-ul ARP
+
+* Daca operation code == 1 => este un ARP request pentru router => noi va
+trebui sa trimitem inapoi MAC-ul uneia din interfetele noastre (trecem prin
+toate, verificam care are IP-ul cerut (target_ip), extragem MAC-ul, construim
+un pachet de tip ARP reply si il trimitem inapoi, pe interfata pe care am
+primit request-ul
+
+* Daca operation code == 0 => este un ARP reply => inseamna ca primim adresa
+MAC pentru care am facut un ARP request mai devreme => e timpul sa trimitem
+pachetele din coada (nu sunt pentru noi). Initializam headerele, gasim 
+target_mac in tabela ARP (stim sigur ca o vom gasi acum), updatam ttl,
+modificam ether_dhost si ether_shost, gasim ruta cea mai buna. Daca nu o
+gasim, facem un pachet ICMP cu destination unreachable si il trimitem
+inapoi. Daca o gasim, trimitem pachetul.
+
+//comentarii legate de cum sunt create pachetele: in cod
+
