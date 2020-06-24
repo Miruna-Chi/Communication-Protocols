@@ -1,0 +1,125 @@
+			Comunicatie cu REST API
+
+	~ client.c
+
+- server_conn_send: 
+(Am avut nevoie de aceasta functie pentru ca se inchidea conexiunea cu serverul
+extrem de repede)
+	- deschide conexiunea cu serverul
+	- trimite mesajul
+	- inchide conexiunea
+	- pastreaza raspunsul (fiindca l-am trimis prin referinta functiei)
+	
+- main:
+	- initializam date (ip, host), deschidem conexiunea cu serverul
+
+	~ while(1):
+		- exit -> inchidem conexiunea, socketul, iesim
+		- register 
+			-> verificam daca e valida comanda
+			-> verificam daca suntem deja logati (avem un cookie)
+				- daca da: eroare -> afiseaza eroarea
+				- daca nu: prompt pentru introducerea datelor,
+				cream mesajul, il trimitem serverului
+					(vezi "auth" din requests)
+					-> daca e successful(ret == 0),
+					 afiseaza asta
+					-> nu e successful (afiseaza eroarea)
+		- login
+			-> procedeu aproape identic cu register (url si mesaje
+			de eroare difera)
+		- logout
+			-> verificam daca e valida comanda
+			-> verificam daca suntem deja logati (avem un cookie)
+			-> cookie = 0 (nu mai suntem logati) -> toate operatiile
+			pe care le putem face doar logati nu vor mai fi posibile
+			-> have_jwt = 0 -> nu mai avem acces la biblioteca
+			pentru ca nu mai suntem logati
+			-> cream mesajul, trimitem serverului
+		- enter_library
+			-> verificam daca e valida comanda
+			-> verificam daca suntem logati
+			-> daca nu s-a iesit pe niciuna din ramurile de mai sus:
+			cream mesajul, trimitem serverului, setam variabila
+			"have_jwt"
+		- get_books
+			-> verificam daca este valida comanda
+			-> verificam daca avem acces la biblioteca
+			-> daca nu s-a iesit pe ramurile de mai sus, cream
+			mesajul, il trimitem serverlui
+			-> daca raspunsul de la server nu a iesit cu eroare: 
+			parsam cartile din biblioteca, le afisam
+		- get_book
+			-> verificam daca este valida comanda
+			-> verificam daca avem acces la biblioteca
+			-> daca nu s-a iesit pe ramurile de mai sus, afisam un
+			prompt pentru introducerea id-ului,cream mesajul, il
+			trimitem serverlui
+			-> daca raspunsul de la server nu a iesit cu eroare: 
+			parsam detaliile cartii, le afisam
+		- delete_book
+			-> verificam daca este valida comanda
+			-> verificam daca avem acces la biblioteca
+			-> daca nu s-a iesit pe ramurile de mai sus, afisam un
+			prompt pentru introducerea id-ului,cream mesajul, il
+			trimitem serverlui
+			-> afisam mesaj de eroare sau succes
+		- else: comanda invalida
+	
+	~ requests.c
+
+- compute_get_request: 
+	-> aproape ca in laborator (cu adaugarea jwt_token)
+
+- compute_post_request:
+	-> aproape ca in laborator (cu adaugarea jwt_token) si alte mici modificari
+
+- compute delete request:
+	-> basically post, dar fara content
+
+	Am ales sa folosesc biblioteca "parson" in primul rand pentru ca am
+scris tema in C. Am descoperit ca e usor de utilizat si nu adaugam decat o sursa
+si un fisier .h la tema.
+
+- create_auth_payload
+	-> primeste username si parola si returneaza un string in format json
+	(cel din enunt)
+	-> folosind functiile din biblioteca "parson" cream un obiect json cu
+	campurile cerute, serializam datele si cream stringul aferent
+	
+- print_json_error
+	-> luam datele din { }, parsam eroarea cu ajutorul functiilor din
+	biblioteca parson, afisam stringul.
+
+- parse_json_book
+	-> luam datele din { } (tratam obiect json), parsam campurile cu ajutorul
+	functiilor din biblioteca parson), afisam datele cartii.
+
+- parse_json_books
+	-> luam datele din [] -> vom avea un array de obiecte json -> le luam
+	pe fiecare in parte si printam campurile id si title
+	-> daca nu sunt carti in biblioteca, afisam un mesaj dragut
+	
+- handle_server_response
+	-> facem un token cu response code-ul serverului 
+		-> daca e vreo eroare, parsam, printam, return 1
+		-> daca nu, return 0
+		
+- return_cookie
+	-> pretty self explanatory, this one
+
+- auth
+	-> folosita pentru register si login
+	-> creeaza prompt pentru username si password
+	-> compute_post_request cu
+	datele (in afara de url, identice la login si register)
+	
+- make_book
+	-> folosita pentru a crea mesajul care contine stringul json cu cartea
+	adaugata
+	-> afiseaza prompturi pentru fiecare camp al unei carti
+	-> serializeaza datele si contruieste un obiect json pe care il
+	converteste intr-un string (totul prin biblioteca parson)
+	-> creeaza mesajul cu datele (compute_post_request), il returneaza
+	
+			
