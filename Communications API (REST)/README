@@ -1,125 +1,112 @@
-			Comunicatie cu REST API
+Communication via REST API
 
-	~ client.c
+~ client.c
 
-- server_conn_send: 
-(Am avut nevoie de aceasta functie pentru ca se inchidea conexiunea cu serverul
-extrem de repede)
-	- deschide conexiunea cu serverul
-	- trimite mesajul
-	- inchide conexiunea
-	- pastreaza raspunsul (fiindca l-am trimis prin referinta functiei)
-	
+- server_conn_send:
+	- open the connection with the server
+	- send the message
+	- close the connection
+	- keep the answer
+
 - main:
-	- initializam date (ip, host), deschidem conexiunea cu serverul
+	- we initialize data (ip, host), we open the connection with the server
 
-	~ while(1):
-		- exit -> inchidem conexiunea, socketul, iesim
-		- register 
-			-> verificam daca e valida comanda
-			-> verificam daca suntem deja logati (avem un cookie)
-				- daca da: eroare -> afiseaza eroarea
-				- daca nu: prompt pentru introducerea datelor,
-				cream mesajul, il trimitem serverului
-					(vezi "auth" din requests)
-					-> daca e successful(ret == 0),
-					 afiseaza asta
-					-> nu e successful (afiseaza eroarea)
-		- login
-			-> procedeu aproape identic cu register (url si mesaje
-			de eroare difera)
-		- logout
-			-> verificam daca e valida comanda
-			-> verificam daca suntem deja logati (avem un cookie)
-			-> cookie = 0 (nu mai suntem logati) -> toate operatiile
-			pe care le putem face doar logati nu vor mai fi posibile
-			-> have_jwt = 0 -> nu mai avem acces la biblioteca
-			pentru ca nu mai suntem logati
-			-> cream mesajul, trimitem serverului
-		- enter_library
-			-> verificam daca e valida comanda
-			-> verificam daca suntem logati
-			-> daca nu s-a iesit pe niciuna din ramurile de mai sus:
-			cream mesajul, trimitem serverului, setam variabila
-			"have_jwt"
-		- get_books
-			-> verificam daca este valida comanda
-			-> verificam daca avem acces la biblioteca
-			-> daca nu s-a iesit pe ramurile de mai sus, cream
-			mesajul, il trimitem serverlui
-			-> daca raspunsul de la server nu a iesit cu eroare: 
-			parsam cartile din biblioteca, le afisam
-		- get_book
-			-> verificam daca este valida comanda
-			-> verificam daca avem acces la biblioteca
-			-> daca nu s-a iesit pe ramurile de mai sus, afisam un
-			prompt pentru introducerea id-ului,cream mesajul, il
-			trimitem serverlui
-			-> daca raspunsul de la server nu a iesit cu eroare: 
-			parsam detaliile cartii, le afisam
-		- delete_book
-			-> verificam daca este valida comanda
-			-> verificam daca avem acces la biblioteca
-			-> daca nu s-a iesit pe ramurile de mai sus, afisam un
-			prompt pentru introducerea id-ului,cream mesajul, il
-			trimitem serverlui
-			-> afisam mesaj de eroare sau succes
-		- else: comanda invalida
-	
-	~ requests.c
+~ while (1):
+- exit -> close the connection, socket, exit
+- register
+	-> check if the order is valid
+	-> check if we are already logged in (we have a cookie)
+		- if yes: error -> displays the error
+		- if not: prompt for data entry,
+		we create the message, we send it to the server
+		(see "auth" in requests)
+		-> if successful (ret == 0), display this
+		-> not successful (show error)
+- log in
+	-> procedure almost identical to register (url and messages
+	error differs)
+- logout
+	-> check if the order is valid
+	-> check if the user is already logged in (they have a cookie)
+	-> cookie = 0 (the user is no longer logged in) -> all operations
+	 that require logging in will no longer be possible
+	-> have_jwt = 0 -> the user no longer has access to the library
+	because they are no longer logged in
+	-> create the message, send it to the server
+- enter_library
+	-> check if the order is valid
+	-> check if the user is logged in
+	-> if none of the above branches were chosen:
+	we create the message, send it to the server, set the variable
+	"Have_jwt"
+- get_books
+	-> check if the order is valid
+	-> check if the user has access to the library
+	-> if none of the above branches were chosen, create
+	the message, send it to the server
+	-> if the response from the server did not come with an error:
+	Parse the books in the library, display them
+- get_book
+	-> check if the order is valid
+	-> check if the user has access to the library
+	-> if none of the above branches were chosen, we display a
+	prompt for entering the id, create the message, send it to
+	the server
+	-> if the response from the server did not come with an error:
+	parse the details of the book, display them
+- delete_book
+	-> check if the order is valid
+	-> check if we have access to the library
+	-> if none of the above branches were chosen, we display a
+	prompt for entering the id, create the message, send it to
+	the server
+	-> we display an error or success message
+- else: invalid command
 
-- compute_get_request: 
-	-> aproape ca in laborator (cu adaugarea jwt_token)
-
-- compute_post_request:
-	-> aproape ca in laborator (cu adaugarea jwt_token) si alte mici modificari
+~ requests.c
 
 - compute delete request:
-	-> basically post, dar fara content
+-> basically post, but no content
 
-	Am ales sa folosesc biblioteca "parson" in primul rand pentru ca am
-scris tema in C. Am descoperit ca e usor de utilizat si nu adaugam decat o sursa
-si un fisier .h la tema.
+I chose to use the "parson" library primarily because I have
+wrote the program in C.
 
 - create_auth_payload
-	-> primeste username si parola si returneaza un string in format json
-	(cel din enunt)
-	-> folosind functiile din biblioteca "parson" cream un obiect json cu
-	campurile cerute, serializam datele si cream stringul aferent
-	
+	-> receives username and password and returns a string in json format
+	(the one in the statement)
+	-> using the functions in the "parson" library we create a json object with
+	the required fields, serialize the data and create the corresponding string
+
 - print_json_error
-	-> luam datele din { }, parsam eroarea cu ajutorul functiilor din
-	biblioteca parson, afisam stringul.
+	-> we take the data from {}, we parse the error with the help of the functions from
+	the parson library, display the string.
 
 - parse_json_book
-	-> luam datele din { } (tratam obiect json), parsam campurile cu ajutorul
-	functiilor din biblioteca parson), afisam datele cartii.
+	-> we take the data from {} -> json object, we parse the fields with the help of
+	functions in the parson library), we display the book data.
 
 - parse_json_books
-	-> luam datele din [] -> vom avea un array de obiecte json -> le luam
-	pe fiecare in parte si printam campurile id si title
-	-> daca nu sunt carti in biblioteca, afisam un mesaj dragut
-	
+	-> we take the data from [] -> we will have an array of json objects ->
+	take each one and print the id and title fields
+	-> if there are no books in the library, we display a nice message
+
 - handle_server_response
-	-> facem un token cu response code-ul serverului 
-		-> daca e vreo eroare, parsam, printam, return 1
-		-> daca nu, return 0
-		
+	-> we make a token with the server response code
+	-> if there is an error, parse, print, return 1
+	-> if not, return 0
+
 - return_cookie
 	-> pretty self explanatory, this one
 
 - auth
-	-> folosita pentru register si login
-	-> creeaza prompt pentru username si password
-	-> compute_post_request cu
-	datele (in afara de url, identice la login si register)
-	
+	-> used for register and login
+	-> create prompt for username and password
+	-> compute_post_request with
+	data (except url, identical to login and register)
+
 - make_book
-	-> folosita pentru a crea mesajul care contine stringul json cu cartea
-	adaugata
-	-> afiseaza prompturi pentru fiecare camp al unei carti
-	-> serializeaza datele si contruieste un obiect json pe care il
-	converteste intr-un string (totul prin biblioteca parson)
-	-> creeaza mesajul cu datele (compute_post_request), il returneaza
-	
-			
+	-> used to create the message containing the json string with the added book
+	-> displays prompts for each field of a book
+	-> serializes the data and builds a json object that it
+	converts to a string (all through the parson library)
+	-> creates the message with the data (compute_post_request), returns it
